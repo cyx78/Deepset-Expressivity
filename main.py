@@ -17,14 +17,14 @@ for hidden_dimension in [16,24,32,64]:
     for sum_dimension in [1,2,4,8]:
         config = {
             'device': 'cuda',
-            'seq_len': 4,
-            'target_function': lambda x: torch.mean(x ** torch.mean(x)).item(),
+            'seq_len': 6,
+            'target_function': lambda x: sum_of_combinations(x,2,1),#lambda x: torch.mean(x ** torch.mean(x)).item(),
             'filepath': 'data.pth',
             'generate_data': False,
             'num_samples': 256,
             'batch_size': 24,
             'trainratio': 0.5,
-            'num_epochs': 500,
+            'num_epochs': 2000,
             'hidden_dimension': hidden_dimension,
             'sum_dimension': sum_dimension,
             'lr': 0.003,
@@ -42,8 +42,8 @@ for hidden_dimension in [16,24,32,64]:
         # trainer.diag_single_sample()
 
         point_list.append((hidden_dimension,sum_dimension))
-        acc_list.append(trainer.diag_final_acc())
-        loss_list.append(trainer.diag_final_loss())
+        acc_list.append(trainer.diag_max_acc())
+        loss_list.append(trainer.diag_min_loss())
 
 
 with open('data/param.pkl', 'wb') as file:

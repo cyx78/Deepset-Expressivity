@@ -126,7 +126,7 @@ class Trainer:
         self.k = []
 
         for _ in range(100):
-            src = 2 * torch.rand(self.seq_len, 1)
+            src = 2 * torch.rand(self.seq_len, 1).to(self.device)
             srcsave = src.clone()
             src = src.unsqueeze(2)
             q = self.model.query(src).transpose(0, 1)
@@ -134,12 +134,12 @@ class Trainer:
             v = self.model.value(src).transpose(0, 1)
             attnscores = torch.bmm(q, key.transpose(1, 2)) / (self.model.hidden_size ** 0.5)
             attnscores = attnscores + self.model.bias
-            if self.has_softmax:
+            if self.model.has_softmax:
                 attnscores = nn.functional.softmax(attnscores, dim=-1)
             src = torch.bmm(attnscores, v).transpose(0, 1)
 
             self.x.append(src[0, 0, 0].item())
-            if self.hidden_dimension > 1:
+            if self.model.hidden_size > 1:
                 self.y.append(src[0, 0, 1].item())
             else:
                 self.y.append(src[0, 0, 0].item())
@@ -208,7 +208,7 @@ class Trainer:
         print(f"srcshape: {src.shape}")
         print(f"outputshape: {self.model(src).shape}")
         print(f"Input: {src}")
-        print(f"Target: {self.target_function(src)}")
+        print(f"Target: {self.target_function(src.reshape(-1))}")
         print(f"Output: {self.model(src)[0].item()}")
     
     def diag_final_loss(self,show=True):
@@ -224,32 +224,54 @@ class Trainer:
             print(f'Final train acc: {self.train_acc_list[-1]}')
             print(f'Final test acc: {self.test_acc_list[-1]}')
         return self.train_acc_list[-1],self.test_acc_list[-1]
+    
+    def diag_min_loss(self,show=True):
+        #return tuple (train_loss, test_loss)
+        if show:
+            print(f'Minimum train loss: {min(self.train_loss_list)}')
+            print(f'Minimum test loss: {min(self.test_loss_list)}')
+        return min(self.train_loss_list),min(self.test_loss_list)
+    
+    def diag_max_acc(self,show=True):
+        #return tuple (train_acc, test_acc)
+        if show:
+            print(f'Maximum train acc: {max(self.train_acc_list)}')
+            print(f'Maximum test acc: {max(self.test_acc_list)}')
+        return max(self.train_acc_list),max(self.test_acc_list)
 
 if __name__ == "__main__":
-    
     config = {
         'device': 'cuda',
         'seq_len': 6,
-        'target_function': lambda x: torch.mean(x ** torch.mean(x)).item(),
+        'target_function': lambda x: sum_of_combinations(x,2,1),
+        #'target_function': lambda x: torch.mean(x ** torch.mean(x)).item(),
+
         'filepath': 'data.pth', #For data save&load, data is automatically saved if generate_data=True
         'generate_data': True,
         'num_samples': 256,
         'batch_size': 24,
         'trainratio': 0.75, #train set percent
-        'num_epochs': 1000,
-        'hidden_dimension': 96,
-        'sum_dimension': 1,
+        'num_epochs': 3000,
+        'hidden_dimension': 64,
+        'sum_dimension': 2,
         'lr': 0.003,
         'acc_tolerance': 0.1, #Error below acc_tolerance will be considered correct prediction when calculating acc
         'manual_build_model': False #Manually define trainer.model and trainer.optimizer after __init__
     }
 
     trainer = Trainer(config)
+
+    # trainer.model=Transformer2Layer(trainer.seq_len,1,1,64,True)
+    # trainer.model=trainer.model.to(trainer.device)
+    # trainer.optimizer=optim.Adam(trainer.model.parameters(), lr=trainer.lr, betas=(0.9, 0.999), weight_decay=5e-4)
+    
     trainer.train()
-    trainer.Deepset_prepare_graph()
+    trainer.Transformer_prepare_graph()
     trainer.plot_scatter_graph()
     trainer.plot_target_function()
     trainer.plot_model_output()
     trainer.diag_single_sample()
     trainer.diag_final_acc()
     trainer.diag_final_loss()
+    trainer.diag_max_acc()
+    trainer.diag_min_loss()
