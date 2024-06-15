@@ -2,6 +2,38 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import torch
+from itertools import combinations
+
+def sum_of_combinations(tensor, n, k=1):
+    """
+    Computes the sum of all unique combinations of n elements from the input tensor, 
+    with each combination's elements multiplied together.
+    
+    Parameters:
+    tensor (torch.Tensor): A 1D tensor of shape (l,)
+    n (int): The number of elements in each combination (n < l)
+    k (float): Power function applied before
+    
+    Returns:
+    torch.Tensor: A tensor containing the sum of all unique combinations of n elements
+    """
+    if tensor.dim() != 1:
+        raise ValueError("Input tensor must be a 1D tensor.")
+    
+    l = tensor.size(0)
+    
+    if n >= l:
+        raise ValueError("n must be less than the length of the tensor.")
+    
+    tensor=tensor**k
+    
+    combs = combinations(tensor, n)
+    
+    result = sum(torch.prod(torch.tensor(c), dtype=tensor.dtype) for c in combs)
+    
+    return result
+
 class Transformer2Layer(nn.Module):
     def __init__(self,seq_len,hidden_size,output_dim,MLP_hidden_dimension,has_softmax
                  ):
