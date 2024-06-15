@@ -25,6 +25,7 @@ class Trainer:
         self.sum_dimension = config['sum_dimension']
         self.lr = config['lr']
         self.manual_build_model = config['manual_build_model']
+        self.acc_tolerance = config['acc_tolerance']
 
         self.info = f'n={self.hidden_dimension}_k={self.sum_dimension}_lr={self.lr}'
 
@@ -73,7 +74,7 @@ class Trainer:
             self.optimizer.step()
 
             train_loss += loss.item()
-            correct += torch.sum((output - target) ** 2 < 0.01).item()
+            correct += torch.sum((output - target) ** 2 < self.acc_tolerance**2).item()
             total += target.size(0)
 
         avg_train_loss = train_loss / len(self.trainloader)
@@ -91,7 +92,7 @@ class Trainer:
                 output = self.model(src.t())
                 loss = torch.mean((output - target) ** 2)
                 test_loss += loss.item()
-                correct += torch.sum((output - target) ** 2 < 0.01).item()
+                correct += torch.sum((output - target) ** 2 < self.acc_tolerance**2).item()
                 total += target.size(0)
 
         avg_test_loss = test_loss / len(self.testloader)
@@ -239,6 +240,7 @@ if __name__ == "__main__":
         'hidden_dimension': 96,
         'sum_dimension': 1,
         'lr': 0.003,
+        'acc_tolerance': 0.1, #Error below acc_tolerance will be considered correct prediction when calculating acc
         'manual_build_model': False #Manually define trainer.model and trainer.optimizer after __init__
     }
 
